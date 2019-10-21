@@ -27459,13 +27459,20 @@ exports.default = _default;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.FETCH_DECK_RESULT = exports.SET_INSTRUCTIONS_EXPANDED = exports.SET_GAME_STARTED = void 0;
+exports.DECK = exports.FEATCH_DECK_ERROR = exports.FETCH_DECK_RESULT = exports.SET_INSTRUCTIONS_EXPANDED = exports.SET_GAME_STARTED = void 0;
 var SET_GAME_STARTED = 'SET_GAME_STARTED';
 exports.SET_GAME_STARTED = SET_GAME_STARTED;
 var SET_INSTRUCTIONS_EXPANDED = 'SET_INSTRUCTIONS_EXPANDED';
 exports.SET_INSTRUCTIONS_EXPANDED = SET_INSTRUCTIONS_EXPANDED;
 var FETCH_DECK_RESULT = 'FETCH_DECK_RESULT';
 exports.FETCH_DECK_RESULT = FETCH_DECK_RESULT;
+var FEATCH_DECK_ERROR = 'FEATCH_DECK_ERROR';
+exports.FEATCH_DECK_ERROR = FEATCH_DECK_ERROR;
+var DECK = {
+  FETCH_SUCCESS: 'DECK_FETCH_SUCESS',
+  FETCH_ERROR: 'DECK_FETCH_ERROR'
+};
+exports.DECK = DECK;
 },{}],"actions/settings.js":[function(require,module,exports) {
 "use strict";
 
@@ -27517,34 +27524,61 @@ exports.collapseInstructions = collapseInstructions;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.fetchNewDeck = exports.featchDeckResult = void 0;
+exports.fetchNewDeck = exports.fetchDeckError = exports.featchDeckSuccess = void 0;
 
 var _types = require("./types");
 
-var featchDeckResult = function featchDeckResult(deckJson) {
+var featchDeckSuccess = function featchDeckSuccess(deckJson) {
   var remaining = deckJson.remaining,
       deck_id = deckJson.deck_id;
   return {
-    type: _types.FETCH_DECK_RESULT,
+    type: _types.DECK.FETCH_SUCCESS,
     remaining: remaining,
     deck_id: deck_id
   };
 };
 
-exports.featchDeckResult = featchDeckResult;
+exports.featchDeckSuccess = featchDeckSuccess;
+
+var fetchDeckError = function fetchDeckError(error) {
+  return {
+    type: _types.DECK.FETCH_ERROR,
+    message: error.message
+  };
+};
+
+exports.fetchDeckError = fetchDeckError;
 
 var fetchNewDeck = function fetchNewDeck() {
   return function (dispatch) {
     return fetch('https://deck-of-cards-api-wrapper.appspot.com/deck/new/shuffle').then(function (response) {
+      if (response.status !== 200) {
+        throw new Error('Unsuccessful request to deckofcardsapi.com');
+      }
+
       return response.json();
     }).then(function (json) {
-      return dispatch(featchDeckResult(json));
+      return dispatch(featchDeckSuccess(json));
+    }).catch(function (error) {
+      return dispatch(fetchDeckError(error));
     });
   };
 };
 
 exports.fetchNewDeck = fetchNewDeck;
-},{"./types":"actions/types.js"}],"components/Instructions.js":[function(require,module,exports) {
+},{"./types":"actions/types.js"}],"reducers/fetchStates.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+var _default = {
+  sucess: 'success',
+  error: 'error'
+};
+exports.default = _default;
+},{}],"components/Instructions.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -27603,6 +27637,8 @@ var _reactRedux = require("react-redux");
 var _settings = require("../actions/settings");
 
 var _deck = require("../actions/deck");
+
+var _fetchStates = _interopRequireDefault(require("../reducers/fetchStates"));
 
 var _Instructions = _interopRequireDefault(require("./Instructions"));
 
@@ -27663,6 +27699,11 @@ function (_Component) {
     key: "render",
     value: function render() {
       console.log('this', this);
+
+      if (this.props.fetchState === _fetchStates.default.error) {
+        return _react.default.createElement("div", null, _react.default.createElement("p", null, "Please try reloading the app. An error occured. "), _react.default.createElement("p", null, this.props.message));
+      }
+
       return _react.default.createElement("div", null, _react.default.createElement("h2", null, "\u2660\uFE0F \u2665\uFE0F Evens or Odds \u2663\uFE0F \u2666\uFE0F"), this.props.gameStarted ? _react.default.createElement("div", null, _react.default.createElement("h3", null, "The game is on!"), _react.default.createElement("br", null), _react.default.createElement("button", {
         onClick: this.props.cancelGame
       }, "Cancel game")) : _react.default.createElement("div", null, _react.default.createElement("h3", null, "A new Game awaits"), _react.default.createElement("br", null), _react.default.createElement("button", {
@@ -27676,8 +27717,13 @@ function (_Component) {
 
 var mapStateToProps = function mapStateToProps(state) {
   console.log('state', state);
+  var gameStarted = state.gameStarted,
+      fetchState = state.fetchState,
+      message = state.message;
   return {
-    gameStarted: state.gameStarted
+    gameStarted: gameStarted,
+    fetchState: fetchState,
+    message: message
   };
 };
 /*
@@ -27701,7 +27747,7 @@ var componentConnector = (0, _reactRedux.connect)(mapStateToProps, {
 var _default = componentConnector(App);
 
 exports.default = _default;
-},{"react":"../node_modules/react/index.js","react-dom":"../node_modules/react-dom/index.js","react-redux":"../node_modules/react-redux/es/index.js","../actions/settings":"actions/settings.js","../actions/deck":"actions/deck.js","./Instructions":"components/Instructions.js"}],"reducers/index.js":[function(require,module,exports) {
+},{"react":"../node_modules/react/index.js","react-dom":"../node_modules/react-dom/index.js","react-redux":"../node_modules/react-redux/es/index.js","../actions/settings":"actions/settings.js","../actions/deck":"actions/deck.js","../reducers/fetchStates":"reducers/fetchStates.js","./Instructions":"components/Instructions.js"}],"reducers/index.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -27710,6 +27756,10 @@ Object.defineProperty(exports, "__esModule", {
 exports.default = void 0;
 
 var _types = require("../actions/types");
+
+var _fetchStates = _interopRequireDefault(require("./fetchStates"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); keys.push.apply(keys, symbols); } return keys; }
 
@@ -27738,12 +27788,19 @@ var rootReducer = function rootReducer() {
         instructionsExpanded: action.instructionsExpanded
       });
 
-    case _types.FETCH_DECK_RESULT:
+    case _types.DECK.FETCH_SUCCESS:
       var remaining = action.remaining,
           deck_id = action.deck_id;
       return _objectSpread({}, state, {
         remaining: remaining,
-        deck_id: deck_id
+        deck_id: deck_id,
+        fetchState: _fetchStates.default.success
+      });
+
+    case _types.DECK.FETCH_ERROR:
+      return _objectSpread({}, state, {
+        message: action.message,
+        fetchState: _fetchStates.default.error
       });
 
     default:
@@ -27753,7 +27810,7 @@ var rootReducer = function rootReducer() {
 
 var _default = rootReducer;
 exports.default = _default;
-},{"../actions/types":"actions/types.js"}],"../node_modules/parcel-bundler/src/builtins/bundle-url.js":[function(require,module,exports) {
+},{"../actions/types":"actions/types.js","./fetchStates":"reducers/fetchStates.js"}],"../node_modules/parcel-bundler/src/builtins/bundle-url.js":[function(require,module,exports) {
 var bundleURL = null;
 
 function getBundleURLCached() {
